@@ -107,6 +107,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument('--chunksize', type=int, default=1_000_000)
     parser.add_argument(
+        '--include-mutations',
+        nargs='*',
+        default=None,
+        help='Optional subset of mutations to include',
+    )
+    parser.add_argument(
         '--exclude-mutations',
         nargs='*',
         default=['ErbB2'],
@@ -185,6 +191,10 @@ def prepare_block_table(meta: pd.DataFrame, available_blocks: pd.DataFrame, args
     meta = meta.copy()
     block_table = available_blocks.merge(meta, on='Image_Metadata_Site', how='left')
 
+    if args.include_mutations:
+        block_table=block_table.loc[
+            block_table['Mutation'].isin(args.include_mutations)
+        ].copy()
     if args.exclude_mutations:
         block_table = block_table.loc[~block_table['Mutation'].isin(args.exclude_mutations)].copy()
     if args.exp_ids:
