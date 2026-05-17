@@ -25,6 +25,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
+from scipy.stats import mannwhitneyu 
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -139,7 +141,6 @@ def load_site_block(data_path: Path, exp_id: int, site_id: int, chunksize: int) 
     parts: list[pd.DataFrame] = []
 
 
-    #NEW==========================================
  
     for chunk in pd.read_csv(data_path, usecols=REQUIRED_COLUMNS, chunksize=chunksize):
         mask = (chunk['Exp_ID'] == exp_id) & (chunk['Image_Metadata_Site'] == site_id)
@@ -387,10 +388,10 @@ def summarise_propagation(block: pd.DataFrame, spatial_edges: pd.DataFrame, temp
 
 
 
-#new===========================================================================
-#one block -> many time points (for every time point)
+# new===========================================================================
+# one block -> many time points (for every time point)
 
-
+#categorizing
 def get_block_lim(block): 
 
     min_x = block["objNuclei_Location_Center_X"].min()
@@ -463,7 +464,88 @@ def categorize_cell_position(block, edge_quant):
 
 
 
+def spatial_category_analysis(block):
 
+    results = {}    #for results
+    rr_distributions = {} #for tests
+
+    for typ in ["edge", "central"]:
+
+        #all observations of a certain cell type in this block
+        sub = block[block["spatial_category"] == typ].copy()
+
+        #exposed = minimum 1 neighbour jumps
+        exposed = sub[sub["neighbor_jump_now"] == True]
+        unexposed = sub[sub["neighbor_jump_now"] == False]
+
+
+        if len(exposed) > 0 :
+            exposed_rate = exposed["future_self_jump"].mean()
+        else:
+            exposed_rate = np.nan
+
+        if len(unexposed) > 0:
+            unexposed_rate = unexposed["future_self_jump"].mean()
+        else:
+            unexposed_rate = np.nan
+
+
+
+        if pd.notna(exposed_rate) and pd.notna(unexposed_rate) and unexposed_rate > 0:
+
+            rr = exposed_rate / unexposed_rate
+        else:
+            rr = np.nan
+        
+
+
+        results[typ] = {
+            "cell_category": typ,
+            "n_cells": sub["track_id"].nunique(),
+            "n_observations": len(sub),
+            "mean_neighbors": float(sub["neighbor_count"].mean()),
+            "future_jump_rate_exposed": float(exposed_rate),
+            "future_jump_rate_unexposed": float(unexposed_rate),
+            "RR": float(rr),
+        }
+
+
+        #calculating rr distribution for every track
+        rr_per_track = []
+
+        for track_id, track_df in sub.groupby("track_id"):
+            exposed_track = track_df[track_df["neighbor_jump_now"] == True] 
+            unexposed_track = track_df[track_df["neighbor_jump_now"] == False] 
+             
+            if len(exposed_track) == 0 or len(unexposed_track) == 0:
+                continue 
+             
+            exposed_rate_track = exposed_track["future_self_jump"].mean()
+            unexposed_rate_track = unexposed_track["future_self_jump"].mean()
+            
+            if unexposed_rate_track > 0:
+                rr_track = exposed_rate_track / unexposed_rate_track 
+                rr_per_track.append(rr_track) 
+                
+        rr_distributions[typ] = rr_per_track
+
+
+    edge_dist = rr_distributions["edge"]
+    central_dist = rr_distributions["central"]
+
+    stat, p = mannwhitneyu(edge_dist, central_dist, alternative="two-sided")
+
+    #final table
+    table = pd.DataFrame(results.values())
+
+    table["mannwhitney_U"] = float(stat)
+    table["mannwhitney_p"] = float(p)
+
+    return {
+        "table": table,
+        "mannwhitney_U": float(stat),
+        "p_value": float(p),
+    }
 
 
 
@@ -486,22 +568,13 @@ def save_outputs(block: pd.DataFrame, spatial_edges: pd.DataFrame, temporal_edge
     available_node_cols = [col for col in node_cols if col in block.columns]
     block[available_node_cols].to_csv(output_dir / 'nodes.csv.gz', index=False)
 
-    if not spatial_edges.empty:
-        spatial_edges.to_csv(output_dir / 'spatial_edges.csv.gz', index=False)
-    else:
-        pd.DataFrame(columns=['source_node_id', 'target_node_id', 'edge_type', 'frame', 'distance']).to_csv(
-            output_dir / 'spatial_edges.csv.gz', index=False
-        )
-
-    if not temporal_edges.empty:
-        temporal_edges.to_csv(output_dir / 'temporal_edges.csv.gz', index=False)
-    else:
-        pd.DataFrame(columns=['source_node_id', 'target_node_id', 'edge_type', 'frame_gap', 'time_gap_h']).to_csv(
-            output_dir / 'temporal_edges.csv.gz', index=False
-        )
+ 
 
     with (output_dir / 'summary.json').open('w', encoding='utf-8') as handle:
         json.dump(summary, handle, indent=2)
+
+
+
 
 
 def main() -> None:
@@ -534,12 +607,24 @@ def main() -> None:
 
 
 
-    #classification======================
+    #classification and analysis======================
     block = categorize_cell_position(block, edge_quant=0.2)
+    classification_analysis = spatial_category_analysis(block)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    classification_analysis["table"].to_csv(output_dir / "spatial_comparison_table.csv", index=False)
 
 
 
+    
     summary = summarise_propagation(block, spatial_edges, temporal_edges, threshold, args, mutation)
+    
+    
+    #adding new columns (for tests)=======================================
+    summary["mannwhitney_U"] = classification_analysis["mannwhitney_U"]
+    summary["mannwhitney_p"] = classification_analysis["p_value"]  
+
+
+
     save_outputs(block, spatial_edges, temporal_edges, summary, output_dir)
 
     print('\nSpatiotemporal graph analysis complete.')
