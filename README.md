@@ -8,7 +8,8 @@
 
 This project investigates whether local neighbor activity influences future signaling events. The analysis combines spatial graph construction with temporal tracking of single-cell signaling dynamics to quantify local coordination effects in structured cell populations. By integrating neighborhood activity with future cellular responses, the framework provides a scalable approach to studying context-dependent signaling behavior in imaging-based biological systems.
 
-Read the report *link*
+For more informations about the project, read the [report](./report_Bankowska_Rawa.pdf)
+
 
 
 Output files for tasks:
@@ -23,9 +24,6 @@ Output files for tasks:
 
 - Task A3 (Parameter Robustness Assessment):
     - parameter_sensitivity_analysis_plot.png
-
-
-
 
 
 - Task B (Spatial Heterogeneity Analysis):
@@ -116,7 +114,6 @@ Links:
 - [Task A1 notebook](./notebooks/TaskA1_MutationComparison.ipynb)
 - [Task A2 notebook](./notebooks/TaskA2_LaggedExposure.ipynb)
 - [Task A3 notebook](./notebooks/TaskA3_ParameterRobustness.ipynb)
-
 - [Task B ntoebook](./notebooks/task_b.ipynb)
 
 ---
