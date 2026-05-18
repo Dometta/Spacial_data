@@ -490,7 +490,7 @@ def spatial_category_analysis(block):
             unexposed_rate = np.nan
 
 
-
+        
         if pd.notna(exposed_rate) and pd.notna(unexposed_rate) and unexposed_rate > 0:
 
             rr = exposed_rate / unexposed_rate
