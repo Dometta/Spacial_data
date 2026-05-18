@@ -14,10 +14,15 @@ Read the report *link*
 Output files for tasks:
 
 - Task A1 (Multi-Mutation Spatiotemporal Comparison):
+    - mutations_comparison_table.csv
+    - rr_comparison_plot.png
 
 - Task A2 (Lagged Exposure Analysis Across Mutations):
+    - lagged_exposure_table.csv
+    - lagged_exposure_table.png
 
--Task A3 (Parameter Robustness Assessment):
+- Task A3 (Parameter Robustness Assessment):
+    - parameter_sensitivity_analysis_plot.png
 
 
 
@@ -47,7 +52,11 @@ repo-root/
 │   └── task_b.ipynb
 │
 ├── outputs/
-│   ├── group_level_summary.csv
+│   ├── mutations_comparison_table.csv
+    ├── lagged_exposure_table.png
+    ├── rr_comparison_plot.png
+    ├── lagged_exposure_table.csv
+    ├── parameter_sensitivity_analysis_plot.png
 │   │
 │   └── B_TASK_OUTPUT/
 │       ├── final_comparison.csv
@@ -105,6 +114,8 @@ For each task, there is a  notebook in the root_folder/notebooks directory conta
 
 Links:
 - [Task A1 notebook](./notebooks/TaskA1_MutationComparison.ipynb)
+- [Task A2 notebook](./notebooks/TaskA2_LaggedExposure.ipynb)
+- [Task A3 notebook](./notebooks/TaskA3_ParameterRobustness.ipynb)
 
 - [Task B ntoebook](./notebooks/task_b.ipynb)
 
